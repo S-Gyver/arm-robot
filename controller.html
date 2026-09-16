@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mobile Controller | 4-Axis Robot Arm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Kanit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="tech-bg text-slate-100 min-h-screen flex flex-col justify-between p-3 sm:p-5 select-none">
+
+  <!-- Mobile Header -->
+  <header class="w-full max-w-md mx-auto flex items-center justify-between py-2 mb-2 border-b border-white/10">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-cyan-500/20">
+        <i data-lucide="smartphone" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-tight text-white">ROBOT CONTROLLER</h1>
+        <p class="text-[10px] text-slate-400">Classroom Mobile Remote</p>
+      </div>
+    </div>
+
+    <div>
+      <a href="index.html" class="text-[11px] px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-white/10 flex items-center gap-1">
+        <i data-lucide="home" class="w-3 h-3"></i> Portal
+      </a>
+    </div>
+  </header>
+
+  <!-- Mobile Container -->
+  <main class="w-full max-w-md mx-auto flex-1 flex flex-col justify-center space-y-4">
+
+    <!-- 1. Pairing Card (shown when disconnected) -->
+    <div id="ctrl-pairing-card" class="glass-panel rounded-2xl p-6 border-t-2 border-t-cyan-500 space-y-5">
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto shadow-lg shadow-cyan-500/10">
+          <i data-lucide="radio" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-xl font-bold text-white">เชื่อมต่อหุ่นยนต์</h2>
+        <p class="text-xs text-slate-400">กรอกรหัส PIN 4 หลักที่แสดงบนหน้าจอ PC ของโต๊ะคุณ</p>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 text-center">
+            ROOM PIN (4 หลัก)
+          </label>
+          <input id="ctrl-pin-input" type="text" maxlength="4" placeholder="เช่น 5921" inputmode="numeric"
+            class="w-full text-center tracking-[0.3em] font-mono-tech text-3xl font-extrabold bg-slate-900/90 text-cyan-400 rounded-xl border border-cyan-500/30 p-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition" />
+        </div>
+
+        <button id="ctrl-btn-pair" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 transition active:scale-[0.98]">
+          <i data-lucide="link" class="w-4 h-4"></i> Connect to Robot (เชื่อมต่อ)
+        </button>
+      </div>
+
+      <div class="pt-2 text-center text-[11px] text-slate-400">
+        💡 ระบบสื่อสารแบบ Real-time Broker ไม่ต้องรีเฟรชหน้า
+      </div>
+    </div>
+
+    <!-- 2. Active Controls (shown when connected) -->
+    <div id="ctrl-active-controls" class="space-y-3 hidden">
+
+      <!-- Status Bar -->
+      <div class="glass-panel rounded-xl p-3 flex items-center justify-between border border-white/10">
+        <div class="flex items-center gap-2">
+          <div id="ctrl-status-pill" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="ctrl-status-text">Connected</span>
+          </div>
+          <span id="ctrl-header-room-badge" class="text-xs font-mono-tech font-bold text-cyan-300 bg-slate-800 px-2 py-0.5 rounded border border-white/10">
+            ROOM #----
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span id="ctrl-tx-indicator" class="w-2.5 h-2.5 rounded-full bg-slate-700 transition-colors"></span>
+          <button id="ctrl-btn-disconnect" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10">
+            เปลี่ยนห้อง
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Sliders -->
+      <div class="glass-panel rounded-2xl p-4 border border-white/10 space-y-3.5">
+        
+        <!-- Base -->
+        <div class="space-y-1.5 bg-slate-900/60 p-3 rounded-xl border border-blue-500/20">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-blue-400 flex items-center gap-1">
+              <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Base Rotation
+            </label>
+            <div class="flex items-center gap-1">
+              <button id="ctrl-btn-base-minus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold active:scale-95 transition">-</button>
+              <span id="ctrl-val-base" class="w-12 text-center font-mono-tech font-bold text-blue-300 text-sm">90°</span>
+              <button id="ctrl-btn-base-plus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold active:scale-95 transition">+</button>
+            </div>
+          </div>
+          <input id="ctrl-slider-base" type="range" min="0" max="180" value="90" class="touch-slider slider-base">
+          <div class="flex justify-between text-[10px] text-slate-500">
+            <span>0° ซ้าย</span>
+            <span>90° กลาง</span>
+            <span>180° ขวา</span>
+          </div>
+        </div>
+
+        <!-- Shoulder -->
+        <div class="space-y-1.5 bg-slate-900/60 p-3 rounded-xl border border-purple-500/20">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-purple-400 flex items-center gap-1">
+              <i data-lucide="move-vertical" class="w-3.5 h-3.5"></i> Shoulder Axis
+            </label>
+            <div class="flex items-center gap-1">
+              <button id="ctrl-btn-shoulder-minus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold active:scale-95 transition">-</button>
+              <span id="ctrl-val-shoulder" class="w-12 text-center font-mono-tech font-bold text-purple-300 text-sm">90°</span>
+              <button id="ctrl-btn-shoulder-plus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold active:scale-95 transition">+</button>
+            </div>
+          </div>
+          <input id="ctrl-slider-shoulder" type="range" min="0" max="180" value="90" class="touch-slider slider-shoulder">
+          <div class="flex justify-between text-[10px] text-slate-500">
+            <span>0° ต่ำ</span>
+            <span>90° ตั้งฉาก</span>
+            <span>180° เงยหลัง</span>
+          </div>
+        </div>
+
+        <!-- Elbow -->
+        <div class="space-y-1.5 bg-slate-900/60 p-3 rounded-xl border border-amber-500/20">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-amber-400 flex items-center gap-1">
+              <i data-lucide="corner-down-right" class="w-3.5 h-3.5"></i> Elbow Axis
+            </label>
+            <div class="flex items-center gap-1">
+              <button id="ctrl-btn-elbow-minus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold active:scale-95 transition">-</button>
+              <span id="ctrl-val-elbow" class="w-12 text-center font-mono-tech font-bold text-amber-300 text-sm">90°</span>
+              <button id="ctrl-btn-elbow-plus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold active:scale-95 transition">+</button>
+            </div>
+          </div>
+          <input id="ctrl-slider-elbow" type="range" min="0" max="180" value="90" class="touch-slider slider-elbow">
+          <div class="flex justify-between text-[10px] text-slate-500">
+            <span>0° พับ</span>
+            <span>90° กลาง</span>
+            <span>180° เหยียด</span>
+          </div>
+        </div>
+
+        <!-- Gripper -->
+        <div class="space-y-1.5 bg-slate-900/60 p-3 rounded-xl border border-emerald-500/20">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-emerald-400 flex items-center gap-1">
+              <i data-lucide="scissors" class="w-3.5 h-3.5"></i> Gripper (มือจับ)
+            </label>
+            <div class="flex items-center gap-1">
+              <button id="ctrl-btn-gripper-minus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold active:scale-95 transition">-</button>
+              <span id="ctrl-val-gripper" class="w-12 text-center font-mono-tech font-bold text-emerald-300 text-sm">90°</span>
+              <button id="ctrl-btn-gripper-plus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold active:scale-95 transition">+</button>
+            </div>
+          </div>
+          <input id="ctrl-slider-gripper" type="range" min="0" max="180" value="90" class="touch-slider slider-gripper">
+          <div class="flex justify-between text-[10px] text-slate-500">
+            <span>0° ปล่อย (Release)</span>
+            <span>180° คีบแน่น (Grab)</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="grid grid-cols-2 gap-2.5">
+        <button id="ctrl-btn-home" class="py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="home" class="w-4 h-4 text-cyan-400"></i> Home Position (90°)
+        </button>
+
+        <button id="ctrl-btn-grab" class="py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20 transition">
+          <i data-lucide="chevrons-right-left" class="w-4 h-4"></i> <span id="ctrl-btn-grab-text">Grab (คีบ)</span>
+        </button>
+      </div>
+
+      <!-- Emergency Stop -->
+      <div>
+        <button id="ctrl-btn-estop" class="w-full py-3.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-extrabold text-sm tracking-wider uppercase flex items-center justify-center gap-2 shadow-lg shadow-rose-600/30 transition">
+          <i data-lucide="octagon-alert" class="w-5 h-5"></i> EMERGENCY STOP
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- EMERGENCY STOP MODAL -->
+  <div id="ctrl-estop-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="max-w-sm w-full glass-panel rounded-2xl p-6 border-2 border-rose-500 text-center space-y-4 shadow-2xl">
+      <div class="w-16 h-16 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-500 flex items-center justify-center mx-auto animate-bounce">
+        <i data-lucide="alert-octagon" class="w-10 h-10"></i>
+      </div>
+      <h3 class="text-xl font-extrabold text-rose-400">EMERGENCY STOPPED</h3>
+      <p class="text-xs text-slate-300">ระบบหยุดฉุกเฉินแล้ว หุ่นยนต์ถูกล็อกตำแหน่งเพื่อความปลอดภัย</p>
+      <button id="ctrl-btn-resume-estop" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition">
+        ปลดล็อกและกลับ Home
+      </button>
+    </div>
+  </div>
+
+  <footer class="text-center text-[10px] text-slate-500 py-1">
+    4-Axis Robot Remote &copy; Classroom IoT System
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="controller.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      window.ctrlApp = new window.MobileArmController();
+    });
+  </script>
+</body>
+</html>
