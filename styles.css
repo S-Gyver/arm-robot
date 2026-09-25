@@ -1,4 +1,4 @@
-/* Custom styles for 4-Axis Robot Arm Web App */
+/* Custom styles for Multi-Axis Robot Arm Web App */
 @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 :root {
@@ -9,6 +9,7 @@
   --neon-blue: #3b82f6;
   --neon-purple: #8b5cf6;
   --neon-emerald: #10b981;
+  --neon-amber: #f59e0b;
   --neon-rose: #f43f5e;
 }
 
@@ -87,19 +88,86 @@ input[type=range].touch-slider:active::-webkit-slider-thumb {
   transform: scale(1.15);
 }
 
+/* Responsive Host Sliders for Cockpit Middle Column (Matches User UI Layout) */
+input[type=range].host-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  background: #151f32;
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  margin: 4px 0;
+  padding: 0;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input[type=range].host-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid #ffffff;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 12px currentColor;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+input[type=range].host-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid #ffffff;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 12px currentColor;
+}
+
+input[type=range].host-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: #151f32;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+input[type=range].host-slider:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+
 /* Slider Color Themes */
+.slider-blue::-webkit-slider-thumb,
 .slider-base::-webkit-slider-thumb {
   background: #3b82f6;
   color: #3b82f6;
 }
-.slider-shoulder::-webkit-slider-thumb {
+.slider-purple::-webkit-slider-thumb,
+.slider-shoulder::-webkit-slider-thumb,
+.slider-arm::-webkit-slider-thumb {
   background: #8b5cf6;
   color: #8b5cf6;
 }
+.slider-cyan::-webkit-slider-thumb,
 .slider-elbow::-webkit-slider-thumb {
+  background: #06b6d4;
+  color: #06b6d4;
+}
+.slider-amber::-webkit-slider-thumb,
+.slider-wristPitch::-webkit-slider-thumb,
+.slider-wrist::-webkit-slider-thumb {
   background: #f59e0b;
   color: #f59e0b;
 }
+.slider-rose::-webkit-slider-thumb,
+.slider-wristRoll::-webkit-slider-thumb {
+  background: #f43f5e;
+  color: #f43f5e;
+}
+.slider-emerald::-webkit-slider-thumb,
 .slider-gripper::-webkit-slider-thumb {
   background: #10b981;
   color: #10b981;
@@ -140,4 +208,13 @@ input[type=range].touch-slider:active::-webkit-slider-thumb {
 
 .animate-soft-pulse {
   animation: softPulse 2.5s infinite ease-in-out;
+}
+
+/* Segmented Buttons for Servo Selector */
+.servo-btn-active {
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  box-shadow: 0 0 15px rgba(37, 99, 235, 0.45) !important;
 }

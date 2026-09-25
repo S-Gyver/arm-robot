@@ -1,45 +1,58 @@
 /**
- * 2D Canvas Kinematic Visualizer for 4-Axis Robot Arm
+ * 2D Canvas Kinematic Visualizer for Multi-Axis Robot Arm
+ * Supports 2, 3, 4, 5, and 6 Servos configurations
  * Features: Forward kinematics rendering, smooth interpolation (lerp),
  * interactive joint indicators, realistic robotic limbs, and gripper claw animation.
  */
 
 class RobotArmVisualizer {
-  constructor(canvasId) {
+  constructor(canvasId, servoCount = 4) {
     this.canvas = document.getElementById(canvasId);
     if (!this.canvas) {
       console.error(`Canvas with id "${canvasId}" not found.`);
       return;
     }
     this.ctx = this.canvas.getContext('2d');
-    
-    // Target angles (received from controller)
-    this.target = {
-      base: 90,
-      shoulder: 90,
-      elbow: 90,
-      gripper: 90
-    };
+    this.servoCount = servoCount || (window.ArmConfig ? window.ArmConfig.getCurrentServoCount() : 4);
 
-    // Current animated angles (for smooth lerping)
-    this.current = {
-      base: 90,
-      shoulder: 90,
-      elbow: 90,
-      gripper: 90
-    };
+    // Initial angles map
+    this.initAngleState();
 
     // Arm segment lengths in pixels (relative to canvas scale)
     this.segBaseHeight = 45;
-    this.segUpperArm = 115;
-    this.segForearm = 100;
-    this.segWrist = 35;
+    this.segUpperArm = 110;
+    this.segForearm = 95;
+    this.segWrist = 45;
+    this.segWristRoll = 25;
 
     this.isRunning = false;
     this.initCanvas();
     this.startAnimation();
 
     window.addEventListener('resize', () => this.resize());
+  }
+
+  initAngleState() {
+    const defaultAngles = window.ArmConfig ? window.ArmConfig.getDefaultAngles(this.servoCount) : { base: 90, shoulder: 90, elbow: 90, gripper: 90 };
+    this.target = { ...defaultAngles };
+    this.current = { ...defaultAngles };
+  }
+
+  setServoCount(count) {
+    const n = parseInt(count, 10);
+    if ([2, 3, 4, 5, 6].includes(n)) {
+      this.servoCount = n;
+      const defaultAngles = window.ArmConfig ? window.ArmConfig.getDefaultAngles(n) : {};
+      // Preserve existing angles if present
+      for (const k in defaultAngles) {
+        if (this.target[k] === undefined) {
+          this.target[k] = defaultAngles[k];
+        }
+        if (this.current[k] === undefined) {
+          this.current[k] = defaultAngles[k];
+        }
+      }
+    }
   }
 
   initCanvas() {
@@ -62,11 +75,32 @@ class RobotArmVisualizer {
     this.ctx.scale(dpr, dpr);
   }
 
-  setAngles(base, shoulder, elbow, gripper) {
-    if (base !== undefined) this.target.base = Number(base);
-    if (shoulder !== undefined) this.target.shoulder = Number(shoulder);
-    if (elbow !== undefined) this.target.elbow = Number(elbow);
-    if (gripper !== undefined) this.target.gripper = Number(gripper);
+  setAngles(...args) {
+    if (args.length === 0) return;
+    if (typeof args[0] === 'object' && args[0] !== null) {
+      // If object passed e.g. { base: 90, shoulder: 90, ... }
+      for (const k in args[0]) {
+        if (args[0][k] !== undefined) {
+          this.target[k] = Number(args[0][k]);
+          if (this.current[k] === undefined) {
+            this.current[k] = this.target[k];
+          }
+        }
+      }
+    } else {
+      // If positional arguments passed
+      const cfg = window.ArmConfig ? window.ArmConfig.getServoConfig(this.servoCount) : null;
+      if (cfg && cfg.axes) {
+        cfg.axes.forEach((axis, i) => {
+          if (args[i] !== undefined) {
+            this.target[axis.key] = Number(args[i]);
+            if (this.current[axis.key] === undefined) {
+              this.current[axis.key] = this.target[axis.key];
+            }
+          }
+        });
+      }
+    }
   }
 
   startAnimation() {
@@ -82,11 +116,16 @@ class RobotArmVisualizer {
 
   update() {
     // Lerp factor for smooth mechanical movement
-    const lerpSpeed = 0.14;
-    this.current.base += (this.target.base - this.current.base) * lerpSpeed;
-    this.current.shoulder += (this.target.shoulder - this.current.shoulder) * lerpSpeed;
-    this.current.elbow += (this.target.elbow - this.current.elbow) * lerpSpeed;
-    this.current.gripper += (this.target.gripper - this.current.gripper) * lerpSpeed;
+    const lerpSpeed = 0.28;
+    for (const k in this.target) {
+      if (this.current[k] === undefined) this.current[k] = this.target[k];
+      const diff = this.target[k] - this.current[k];
+      if (Math.abs(diff) < 0.05) {
+        this.current[k] = this.target[k];
+      } else {
+        this.current[k] += diff * lerpSpeed;
+      }
+    }
   }
 
   draw() {
@@ -99,18 +138,19 @@ class RobotArmVisualizer {
     // 1. Draw Tech Background Grid
     this.drawGrid(ctx, w, h);
 
+    const baseVal = this.current.base !== undefined ? this.current.base : 90;
+
     // 2. Draw Top-Down Mini Compass for Base Rotation
-    this.drawBaseCompass(ctx, w - 75, 75, 45, this.current.base);
+    this.drawBaseCompass(ctx, w - 75, 75, 45, baseVal);
 
     // 3. Coordinate System & Base Origin
-    // Base is located near bottom center
-    const baseX = w * 0.42;
+    const baseX = w * 0.40;
     const baseY = h * 0.82;
 
     // Ground platform shadow
     ctx.save();
     ctx.beginPath();
-    ctx.ellipse(baseX, baseY + 18, 120, 16, 0, 0, Math.PI * 2);
+    ctx.ellipse(baseX, baseY + 18, 125, 16, 0, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
     ctx.filter = 'blur(6px)';
     ctx.fill();
@@ -119,50 +159,176 @@ class RobotArmVisualizer {
     // Draw Ground Pedestal
     this.drawPedestal(ctx, baseX, baseY);
 
-    // 4. Calculate Forward Kinematics
-    // Angles in degrees to radians:
-    // Base rotation introduces a slight skew / perspective depth or is reflected in arm projection
-    const baseRad = (this.current.base - 90) * (Math.PI / 180);
-    
-    // Shoulder: 0 to 180 deg. 90 is upright vertical
-    // 0 is forward flat, 180 is backward
-    const shoulderRad = (180 - this.current.shoulder) * (Math.PI / 180);
-
-    // Joint 1: Shoulder pivot
+    // 4. Calculate Forward Kinematics based on active servo count
+    const count = this.servoCount;
     const j1x = baseX;
     const j1y = baseY - this.segBaseHeight;
 
-    // Joint 2: Elbow pivot
-    const j2x = j1x + Math.cos(shoulderRad) * this.segUpperArm;
-    const j2y = j1y - Math.sin(shoulderRad) * this.segUpperArm;
+    let tipX = j1x;
+    let tipY = j1y;
+    let endAngle = 0;
+    let gripperAngle = 90;
 
-    // Elbow: 0 to 180 deg relative to shoulder
-    const elbowRad = shoulderRad - (this.current.elbow - 90) * (Math.PI / 180);
+    if (count === 2) {
+      // 2 Servos: Base + Gripper (Rotates and clamps right at base mount, or small tilt)
+      const gripperVal = this.current.gripper !== undefined ? this.current.gripper : 90;
+      gripperAngle = gripperVal;
+      const armLength = 80;
+      const angleRad = 0; // facing forward/upright
+      tipX = j1x + Math.cos(angleRad) * armLength;
+      tipY = j1y - Math.sin(angleRad) * armLength;
+      endAngle = angleRad;
 
-    // Joint 3: Wrist
-    const j3x = j2x + Math.cos(elbowRad) * this.segForearm;
-    const j3y = j2y - Math.sin(elbowRad) * this.segForearm;
+      this.drawArmSegment(ctx, j1x, j1y, tipX, tipY, '#3b82f6', '#1d4ed8', 18);
+      this.drawJointPivot(ctx, j1x, j1y, 14, '#60a5fa', 'BASE');
+      this.drawJointPivot(ctx, tipX, tipY, 10, '#10b981', 'GRIPPER');
+      this.drawGripperClaw(ctx, tipX, tipY, endAngle, gripperAngle);
 
-    // Gripper Tip Direction
-    const tipX = j3x + Math.cos(elbowRad) * this.segWrist;
-    const tipY = j3y - Math.sin(elbowRad) * this.segWrist;
+    } else if (count === 3) {
+      // 3 Servos: Base + Shoulder + Gripper
+      const shoulderVal = this.current.shoulder !== undefined ? this.current.shoulder : 90;
+      const gripperVal = this.current.gripper !== undefined ? this.current.gripper : 90;
+      gripperAngle = gripperVal;
 
-    // Draw Link 1: Upper Arm (Shoulder to Elbow)
-    this.drawArmSegment(ctx, j1x, j1y, j2x, j2y, '#3b82f6', '#1d4ed8', 18);
+      const shoulderRad = (180 - shoulderVal) * (Math.PI / 180);
+      const armLength = 160;
+      tipX = j1x + Math.cos(shoulderRad) * armLength;
+      tipY = j1y - Math.sin(shoulderRad) * armLength;
+      endAngle = shoulderRad;
 
-    // Draw Link 2: Forearm (Elbow to Wrist)
-    this.drawArmSegment(ctx, j2x, j2y, j3x, j3y, '#8b5cf6', '#6d28d9', 14);
+      this.drawArmSegment(ctx, j1x, j1y, tipX, tipY, '#8b5cf6', '#6d28d9', 18);
+      this.drawJointPivot(ctx, j1x, j1y, 14, '#a78bfa', 'SHOULDER');
+      this.drawJointPivot(ctx, tipX, tipY, 10, '#10b981', 'GRIPPER');
+      this.drawGripperClaw(ctx, tipX, tipY, endAngle, gripperAngle);
 
-    // Draw Joint Pivots
-    this.drawJointPivot(ctx, j1x, j1y, 14, '#60a5fa', 'SHOULDER');
-    this.drawJointPivot(ctx, j2x, j2y, 12, '#a78bfa', 'ELBOW');
-    this.drawJointPivot(ctx, j3x, j3y, 8, '#f43f5e', 'WRIST');
+    } else if (count === 4) {
+      // 4 Servos: Base + Shoulder + Elbow + Gripper (Standard)
+      const shoulderVal = this.current.shoulder !== undefined ? this.current.shoulder : 90;
+      const elbowVal = this.current.elbow !== undefined ? this.current.elbow : 90;
+      gripperAngle = this.current.gripper !== undefined ? this.current.gripper : 90;
 
-    // Draw Gripper Claw (opening/closing according to gripper angle 0-180)
-    this.drawGripperClaw(ctx, j3x, j3y, elbowRad, this.current.gripper);
+      const shoulderRad = (180 - shoulderVal) * (Math.PI / 180);
+      const j2x = j1x + Math.cos(shoulderRad) * this.segUpperArm;
+      const j2y = j1y - Math.sin(shoulderRad) * this.segUpperArm;
+
+      const elbowRad = shoulderRad - (elbowVal - 90) * (Math.PI / 180);
+      const j3x = j2x + Math.cos(elbowRad) * this.segForearm;
+      const j3y = j2y - Math.sin(elbowRad) * this.segForearm;
+
+      tipX = j3x;
+      tipY = j3y;
+      endAngle = elbowRad;
+
+      this.drawArmSegment(ctx, j1x, j1y, j2x, j2y, '#8b5cf6', '#6d28d9', 18);
+      this.drawArmSegment(ctx, j2x, j2y, j3x, j3y, '#06b6d4', '#0891b2', 14);
+
+      this.drawJointPivot(ctx, j1x, j1y, 14, '#a78bfa', 'SHOULDER');
+      this.drawJointPivot(ctx, j2x, j2y, 12, '#22d3ee', 'ELBOW');
+      this.drawJointPivot(ctx, j3x, j3y, 8, '#10b981', 'WRIST');
+
+      this.drawGripperClaw(ctx, j3x, j3y, endAngle, gripperAngle);
+
+    } else if (count === 5) {
+      // 5 Servos: Base + Shoulder + Elbow + WristPitch + Gripper
+      const shoulderVal = this.current.shoulder !== undefined ? this.current.shoulder : 90;
+      const elbowVal = this.current.elbow !== undefined ? this.current.elbow : 90;
+      const wristPitchVal = this.current.wristPitch !== undefined ? this.current.wristPitch : 90;
+      gripperAngle = this.current.gripper !== undefined ? this.current.gripper : 90;
+
+      const shoulderRad = (180 - shoulderVal) * (Math.PI / 180);
+      const j2x = j1x + Math.cos(shoulderRad) * (this.segUpperArm * 0.95);
+      const j2y = j1y - Math.sin(shoulderRad) * (this.segUpperArm * 0.95);
+
+      const elbowRad = shoulderRad - (elbowVal - 90) * (Math.PI / 180);
+      const j3x = j2x + Math.cos(elbowRad) * (this.segForearm * 0.9);
+      const j3y = j2y - Math.sin(elbowRad) * (this.segForearm * 0.9);
+
+      const wristRad = elbowRad - (wristPitchVal - 90) * (Math.PI / 180);
+      const j4x = j3x + Math.cos(wristRad) * this.segWrist;
+      const j4y = j3y - Math.sin(wristRad) * this.segWrist;
+
+      tipX = j4x;
+      tipY = j4y;
+      endAngle = wristRad;
+
+      this.drawArmSegment(ctx, j1x, j1y, j2x, j2y, '#8b5cf6', '#6d28d9', 18);
+      this.drawArmSegment(ctx, j2x, j2y, j3x, j3y, '#06b6d4', '#0891b2', 14);
+      this.drawArmSegment(ctx, j3x, j3y, j4x, j4y, '#f59e0b', '#d97706', 10);
+
+      this.drawJointPivot(ctx, j1x, j1y, 14, '#a78bfa', 'SHOULDER');
+      this.drawJointPivot(ctx, j2x, j2y, 12, '#22d3ee', 'ELBOW');
+      this.drawJointPivot(ctx, j3x, j3y, 9, '#fbbf24', 'WRIST');
+      this.drawJointPivot(ctx, j4x, j4y, 7, '#10b981', 'TOOL');
+
+      this.drawGripperClaw(ctx, j4x, j4y, endAngle, gripperAngle);
+
+    } else if (count === 6) {
+      // 6 Servos: Base + Shoulder + Elbow + WristPitch + WristRoll + Gripper
+      const shoulderVal = this.current.shoulder !== undefined ? this.current.shoulder : 90;
+      const elbowVal = this.current.elbow !== undefined ? this.current.elbow : 90;
+      const wristPitchVal = this.current.wristPitch !== undefined ? this.current.wristPitch : 90;
+      const wristRollVal = this.current.wristRoll !== undefined ? this.current.wristRoll : 90;
+      gripperAngle = this.current.gripper !== undefined ? this.current.gripper : 90;
+
+      const shoulderRad = (180 - shoulderVal) * (Math.PI / 180);
+      const j2x = j1x + Math.cos(shoulderRad) * (this.segUpperArm * 0.92);
+      const j2y = j1y - Math.sin(shoulderRad) * (this.segUpperArm * 0.92);
+
+      const elbowRad = shoulderRad - (elbowVal - 90) * (Math.PI / 180);
+      const j3x = j2x + Math.cos(elbowRad) * (this.segForearm * 0.85);
+      const j3y = j2y - Math.sin(elbowRad) * (this.segForearm * 0.85);
+
+      const wristRad = elbowRad - (wristPitchVal - 90) * (Math.PI / 180);
+      const j4x = j3x + Math.cos(wristRad) * this.segWrist;
+      const j4y = j3y - Math.sin(wristRad) * this.segWrist;
+
+      // Wrist roll collar indicator
+      const j5x = j4x + Math.cos(wristRad) * this.segWristRoll;
+      const j5y = j4y - Math.sin(wristRad) * this.segWristRoll;
+
+      tipX = j5x;
+      tipY = j5y;
+      endAngle = wristRad;
+
+      this.drawArmSegment(ctx, j1x, j1y, j2x, j2y, '#8b5cf6', '#6d28d9', 18);
+      this.drawArmSegment(ctx, j2x, j2y, j3x, j3y, '#06b6d4', '#0891b2', 14);
+      this.drawArmSegment(ctx, j3x, j3y, j4x, j4y, '#f59e0b', '#d97706', 10);
+      this.drawArmSegment(ctx, j4x, j4y, j5x, j5y, '#f43f5e', '#be123c', 8);
+
+      // Roll indicator ring
+      this.drawRollIndicator(ctx, j4x, j4y, wristRad, wristRollVal);
+
+      this.drawJointPivot(ctx, j1x, j1y, 14, '#a78bfa', 'SHOULDER');
+      this.drawJointPivot(ctx, j2x, j2y, 12, '#22d3ee', 'ELBOW');
+      this.drawJointPivot(ctx, j3x, j3y, 9, '#fbbf24', 'W-PITCH');
+      this.drawJointPivot(ctx, j4x, j4y, 7, '#fb7185', 'W-ROLL');
+
+      this.drawGripperClaw(ctx, j5x, j5y, endAngle, gripperAngle);
+    }
 
     // End-Effector Telemetry Overlay
-    this.drawTelemetryHUD(ctx, 16, 26, tipX, tipY, baseX, baseY);
+    this.drawTelemetryHUD(ctx, 16, 26, tipX, tipY, baseX, baseY, count);
+  }
+
+  drawRollIndicator(ctx, x, y, armAngle, rollAngle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(armAngle);
+    // Draw rotating collar ring
+    ctx.strokeStyle = '#f43f5e';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 4, 10, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Small indicator dot for roll position
+    const rollRad = (rollAngle - 90) * (Math.PI / 180);
+    const dotY = Math.sin(rollRad) * 8;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, dotY, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   drawGrid(ctx, w, h) {
@@ -263,7 +429,7 @@ class RobotArmVisualizer {
     ctx.stroke();
 
     // Structural hollow slot
-    if (dist > 50) {
+    if (dist > 40) {
       ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
       ctx.beginPath();
       ctx.roundRect(dist * 0.25, -thickness * 0.22, dist * 0.5, thickness * 0.44, 3);
@@ -309,8 +475,15 @@ class RobotArmVisualizer {
     ctx.translate(x, y);
     ctx.rotate(angle);
 
-    // Gripper Angle: 0 = Open wide (~35 deg spread), 180 = Clamped tight (~4 deg spread)
-    const normalized = Math.max(0, Math.min(180, gripperAngle)) / 180;
+    // Gripper Angle: Normalized by student's Gripper Calibration (Release vs Grab)
+    const calib = window.ArmConfig ? window.ArmConfig.getGripperCalibration() : { release: 30, grab: 140, inverted: false };
+    const span = Math.abs(calib.grab - calib.release) || 1;
+    let normalized;
+    if (calib.inverted) {
+      normalized = Math.max(0, Math.min(1, (calib.release - gripperAngle) / span));
+    } else {
+      normalized = Math.max(0, Math.min(1, (gripperAngle - Math.min(calib.release, calib.grab)) / span));
+    }
     const spread = (1 - normalized) * 0.55 + 0.08; // in radians
 
     // Wrist mount block
@@ -374,7 +547,6 @@ class RobotArmVisualizer {
     ctx.fillText('BASE DIAL', cx, cy + radius + 12);
 
     // Rotation needle
-    // 0 deg = Left, 90 deg = Up, 180 deg = Right
     const rad = (baseAngle - 180) * (Math.PI / 180);
     const nx = cx + Math.cos(rad) * (radius - 10);
     const ny = cy + Math.sin(rad) * (radius - 10);
@@ -401,11 +573,11 @@ class RobotArmVisualizer {
     ctx.restore();
   }
 
-  drawTelemetryHUD(ctx, x, y, tipX, tipY, baseX, baseY) {
+  drawTelemetryHUD(ctx, x, y, tipX, tipY, baseX, baseY, count) {
     ctx.save();
     ctx.font = '10px "JetBrains Mono", monospace';
     ctx.fillStyle = '#0284c7';
-    ctx.fillText('● 2D KINEMATICS ENGINE', x, y);
+    ctx.fillText(`● ${count}-AXIS KINEMATICS ENGINE`, x, y);
 
     const relX = Math.round(tipX - baseX);
     const relY = Math.round(baseY - tipY);

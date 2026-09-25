@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>4-Axis Robot Arm Controller | Classroom IoT System</title>
-  <meta name="description" content="ระบบควบคุมแขนกล 4-Axis ผ่าน Web Serial API และ Supabase Realtime สำหรับห้องเรียน">
+  <title>Multi-Axis Robot Arm Controller | 2, 3, 4, 5, 6 Servos</title>
+  <meta name="description" content="ระบบควบคุมแขนกล 2-6 Servos ผ่าน Web Serial API และ Supabase Realtime สำหรับห้องเรียน">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -19,6 +19,7 @@
               blue: '#3b82f6',
               purple: '#8b5cf6',
               emerald: '#10b981',
+              amber: '#f59e0b',
               rose: '#f43f5e',
               dark: '#070a13',
               card: '#0f172a'
@@ -40,13 +41,17 @@
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- Three.js & OrbitControls for 3D Kinematics Simulator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2.5">
 </head>
 <body class="tech-bg text-slate-100 min-h-screen flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
 
   <!-- TOP NAVBAR -->
-  <header class="sticky top-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl px-4 py-3">
+  <header class="sticky top-0 z-50 border-b border-white/10 bg-slate-950/85 backdrop-blur-xl px-4 py-2.5">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
       
       <!-- Brand & Title -->
@@ -57,38 +62,61 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-              4-AXIS ROBOT ARM
+              MULTI-AXIS ROBOT ARM
             </h1>
-            <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-              IoT Class
+            <span id="host-servo-mode-badge" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+              6 SERVOS
             </span>
           </div>
-          <p class="text-xs text-slate-400 hidden sm:block">ESP32 Web Serial + Supabase Realtime Synchronization</p>
+          <p class="text-xs text-slate-400 hidden sm:block">ESP32 Web Serial + Supabase Realtime | 2, 3, 4, 5, 6 Servos</p>
         </div>
       </div>
 
-      <!-- Mode Switcher Tabs -->
-      <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-white/10 text-xs sm:text-sm shadow-inner">
-        <button id="nav-tab-host" onclick="switchView('host')" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all text-white bg-blue-600 shadow-md">
-          <i data-lucide="monitor" class="w-4 h-4"></i>
-          <span>PC Host View</span>
-        </button>
-        <button id="nav-tab-ctrl" onclick="switchView('controller')" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all text-slate-400 hover:text-white">
-          <i data-lucide="smartphone" class="w-4 h-4"></i>
-          <span>Mobile Controller</span>
-        </button>
-        <button id="nav-tab-split" onclick="switchView('split')" class="px-3 py-1.5 rounded-lg font-semibold hidden md:flex items-center gap-1.5 transition-all text-slate-400 hover:text-white">
-          <i data-lucide="columns" class="w-4 h-4"></i>
-          <span>Dual Split View</span>
-        </button>
-      </div>
+      <!-- Mode Switcher Tabs + Room Code + Actions -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- View Switcher Tabs -->
+        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-white/10 text-xs sm:text-sm shadow-inner">
+          <button id="nav-tab-host" onclick="switchView('host')" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all text-white bg-slate-800 border border-white/10 shadow-md">
+            <i data-lucide="monitor" class="w-4 h-4 text-cyan-400"></i>
+            <span>PC Host View</span>
+          </button>
+          <button id="nav-tab-ctrl" onclick="switchView('controller')" class="px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all text-slate-400 hover:text-white">
+            <i data-lucide="smartphone" class="w-4 h-4"></i>
+            <span>Mobile Controller</span>
+          </button>
+          <button id="nav-tab-split" onclick="switchView('split')" class="px-3 py-1.5 rounded-lg font-semibold hidden md:flex items-center gap-1.5 transition-all text-slate-400 hover:text-white">
+            <i data-lucide="columns" class="w-4 h-4"></i>
+            <span>Split View</span>
+          </button>
+        </div>
 
-      <!-- Header Action Buttons -->
-      <div class="flex items-center gap-2">
-        <button onclick="openModal('modal-code')" class="p-2 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-white/10 transition-colors" title="ESP32 Code Guide">
-          <i data-lucide="file-code" class="w-4 h-4"></i>
+        <!-- Room Pairing Code Display Badge -->
+        <div class="flex items-center gap-2 bg-slate-900/90 border border-cyan-500/30 rounded-xl px-3 py-1 shadow-inner">
+          <div class="flex flex-col items-center">
+            <span class="text-[9px] font-mono-tech uppercase tracking-wider text-cyan-400 font-bold">ROOM PAIRING CODE</span>
+            <span id="host-room-code-display" class="font-mono-tech text-base sm:text-lg font-extrabold tracking-widest text-cyan-300 select-all">2038</span>
+          </div>
+        </div>
+
+        <!-- QR Button -->
+        <button id="host-btn-qr" onclick="openModal('modal-qr')" class="w-9 h-9 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-black text-xs flex items-center justify-center shadow-lg transition active:scale-95" title="สแกน QR เพื่อเชื่อมต่อ">
+          QR
         </button>
-        <button onclick="openModal('modal-settings')" class="p-2 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-white/10 transition-colors" title="Supabase Settings">
+
+        <!-- Multi-Axis Robot Calibration Button -->
+        <button onclick="openCalibrationModal()" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1.5 text-xs font-semibold" title="ตั้งค่าและปรับเทียบเซอร์โวทุกแกน (Servo Calibration)">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Calibrate เซอร์โว</span>
+        </button>
+
+        <!-- ESP32 Wiring & Firmware Code Modal Button -->
+        <button onclick="openModal('modal-code')" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold" title="ESP32 Wiring & Firmware">
+          <i data-lucide="file-code" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">โค้ด ESP32</span>
+        </button>
+
+        <!-- Supabase Settings Button -->
+        <button onclick="openModal('modal-settings')" class="w-9 h-9 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-white/10 transition-colors flex items-center justify-center" title="Supabase Settings">
           <i data-lucide="settings" class="w-4 h-4"></i>
         </button>
       </div>
@@ -96,13 +124,72 @@
     </div>
   </header>
 
+  <!-- SUB-HEADER BAR: HARDWARE & CONFIG STRIP -->
+  <div class="border-b border-white/5 bg-slate-950/60 backdrop-blur-md px-4 py-2.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Left: Servo Dropdown Selector -->
+      <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+          <i data-lucide="tag" class="w-4 h-4 text-cyan-400"></i>
+          <span>เลือกรุ่นแขนกล (จำนวน Servo):</span>
+        </div>
+        <div class="relative">
+          <select id="host-servo-select" class="bg-slate-900/90 text-white text-xs font-semibold rounded-xl border border-white/15 px-3 py-1.5 pr-8 focus:outline-none focus:ring-1 focus:ring-cyan-400 cursor-pointer appearance-none shadow-inner">
+            <option value="2">2 Servos (2-Axis)</option>
+            <option value="3">3 Servos (3-Axis)</option>
+            <option value="4">4 Servos (Standard)</option>
+            <option value="5">5 Servos (5-Axis)</option>
+            <option value="6" selected>6 Servos (Full 6-DOF)</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        </div>
+      </div>
+
+      <!-- Right: USB Connect Button + Helper Text + Status Badges -->
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Big Connect Button -->
+        <button id="host-btn-connect-serial" class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-cyan-500/25 transition active:scale-95">
+          <i data-lucide="cable" class="w-4 h-4"></i>
+          <span>เชื่อมต่อ ESP32</span>
+        </button>
+        <button id="host-btn-disconnect-serial" class="hidden px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-rose-600/20 transition active:scale-95">
+          <i data-lucide="power" class="w-4 h-4"></i>
+          <span>ตัดการเชื่อมต่อ</span>
+        </button>
+
+        <!-- USB Hardware helper text -->
+        <div class="hidden md:flex flex-col text-[11px] leading-tight text-slate-400 border-l border-white/10 pl-3">
+          <div class="flex items-center gap-1 text-slate-300 font-semibold">
+            <i data-lucide="usb" class="w-3 h-3 text-cyan-400"></i> USB Hardware:
+          </div>
+          <span class="text-[10px] text-slate-400">เสียบสาย USB แล้วกดเลือก COM Port</span>
+        </div>
+
+        <!-- Serial Status Badge -->
+        <div class="flex items-center gap-2 bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-white/10">
+          <div id="host-serial-dot" class="w-2.5 h-2.5 rounded-full bg-rose-500 status-glow-red"></div>
+          <span id="host-serial-status-text" class="text-xs font-bold text-rose-400">Disconnected</span>
+          <span class="text-[10px] px-1 py-0.5 rounded bg-slate-800 text-slate-400 font-mono-tech border border-white/5">115200 BAUD</span>
+        </div>
+
+        <!-- Connected Clients Count Badge -->
+        <div class="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-white/10 text-xs">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span id="host-clients-count" class="font-bold text-cyan-400">0 อุปกรณ์</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- MAIN VIEWPORT CONTAINER -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col">
+  <main class="flex-1 max-w-[1720px] w-full mx-auto p-2.5 sm:p-4 flex flex-col">
 
     <!-- ======================================================== -->
-    <!-- 1. PC HOST VIEW CONTAINER                               -->
+    <!-- 1. PC HOST VIEW CONTAINER (3-COLUMN COCKPIT LAYOUT)      -->
     <!-- ======================================================== -->
-    <div id="view-host-container" class="space-y-5 transition-all duration-300">
+    <div id="view-host-container" class="space-y-4 transition-all duration-300">
 
       <!-- Browser Web Serial Alert (If not supported) -->
       <div id="host-serial-alert" class="hidden rounded-xl bg-amber-500/10 border border-amber-500/30 p-3.5 text-amber-300 text-xs sm:text-sm flex items-start gap-3">
@@ -112,124 +199,148 @@
         </div>
       </div>
 
-      <!-- TOP CONTROL STRIP: Room Code + Hardware Status -->
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+      <!-- 3-COLUMN MAIN DASHBOARD GRID (Matches User UI Layout) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
 
-        <!-- Room Code Generator Card (Col 1-4) -->
-        <div class="md:col-span-4 glass-panel rounded-2xl p-5 flex flex-col justify-between border-t-2 border-t-cyan-500 relative overflow-hidden">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-              <i data-lucide="radio" class="w-4 h-4"></i> ROOM PAIRING CODE
-            </span>
-            <div id="host-cloud-status" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-800 text-slate-400 border border-white/10 flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-slate-500"></span> Initializing
+        <!-- ======================================================== -->
+        <!-- COLUMN 1: ROBOT KINEMATICS SIMULATOR (Col 1-5, ~41%)     -->
+        <!-- ======================================================== -->
+        <div class="lg:col-span-5 flex flex-col">
+          <div class="glass-panel rounded-2xl p-4 sm:p-5 flex-1 flex flex-col justify-between border border-white/10 relative overflow-hidden shadow-2xl">
+            
+            <!-- Simulator Header & 3D/2D Switcher -->
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shadow-md shadow-cyan-500/10">
+                  <i data-lucide="orbit" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h2 class="text-sm sm:text-base font-bold tracking-wide text-slate-100">ROBOT KINEMATICS SIMULATOR</h2>
+                  <p class="text-[11px] text-slate-400 hidden sm:block">3D WebGL Realtime Forward Kinematics Engine</p>
+                </div>
+              </div>
+              
+              <!-- 3D / 2D View Mode Switcher -->
+              <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-white/10 text-xs shadow-inner">
+                <button id="btn-sim-mode-3d" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-white shadow-md transition flex items-center gap-1.5">
+                  <i data-lucide="box" class="w-3.5 h-3.5"></i> 3D WebGL
+                </button>
+                <button id="btn-sim-mode-2d" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition flex items-center gap-1.5">
+                  <i data-lucide="layout" class="w-3.5 h-3.5"></i> 2D
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div class="my-3 text-center">
-            <div class="text-xs text-slate-400 mb-1">รหัสห้องสำหรับกรอกบนสมาร์ตโฟน</div>
-            <div id="host-room-code-display" class="font-mono-tech text-5xl sm:text-6xl font-extrabold tracking-widest text-transparent bg-gradient-to-r from-cyan-400 via-sky-200 to-blue-400 bg-clip-text select-all">
-              ----
+            <!-- 3D WebGL Viewport Container -->
+            <div id="host-sim-3d-box" class="relative w-full h-[460px] sm:h-[500px] lg:h-[520px] bg-slate-950/85 rounded-xl border border-white/5 overflow-hidden flex-1">
+              <div id="host-robot-3d-container" class="w-full h-full block"></div>
+              
+              <!-- HUD Overlays -->
+              <div class="absolute top-3 left-3 pointer-events-none text-[11px] text-cyan-400 font-mono-tech bg-slate-950/80 px-2.5 py-1 rounded-lg border border-cyan-500/30 backdrop-blur-md flex items-center gap-1.5 shadow-lg">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> THREE.JS 3D ENGINE
+              </div>
+
+              <div class="absolute bottom-3 left-3 pointer-events-none text-[11px] text-slate-300 font-mono-tech bg-slate-950/80 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-md hidden sm:block shadow-lg">
+                🖱️ คลิกซ้าย: หมุน 360° | ล้อเมาส์: ซูม | คลิกขวา: เลื่อน
+              </div>
+
+              <div class="absolute bottom-3 right-3 flex items-center gap-2">
+                <button id="host-btn-reset-cam-3d" class="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-xs font-semibold text-slate-200 border border-white/15 backdrop-blur-md flex items-center gap-1.5 shadow-xl transition active:scale-95">
+                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-cyan-400"></i> รีเซ็ตกล้อง
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div class="flex items-center gap-2 pt-2 border-t border-white/10">
-            <button id="host-btn-copy-room" class="flex-1 py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 border border-white/10 transition">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i> คัดลอกลิงก์ห้อง
-            </button>
-            <button id="host-btn-refresh-room" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 flex items-center justify-center gap-1.5 border border-white/10 transition" title="สุ่มรหัสใหม่">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-            </button>
+            <!-- 2D Canvas Viewport Container (Fallback) -->
+            <div id="host-sim-2d-box" class="relative w-full h-[460px] sm:h-[500px] lg:h-[520px] bg-slate-950/70 rounded-xl border border-white/5 overflow-hidden flex items-center justify-center hidden flex-1">
+              <canvas id="host-robot-canvas" class="w-full h-full block"></canvas>
+            </div>
+
+            <!-- Bottom Sub-bar -->
+            <div class="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400 px-1">
+              <span class="flex items-center gap-1.5 text-slate-300">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Dynamic Kinematics: Base ➔ Arm Segments ➔ Gripper Claw
+              </span>
+              <span class="text-cyan-400 font-mono-tech hidden sm:inline">Smooth Real-time Motion</span>
+            </div>
+
           </div>
         </div>
 
-        <!-- Web Serial ESP32 Connect Card (Col 5-12) -->
-        <div class="md:col-span-8 glass-panel rounded-2xl p-5 flex flex-col justify-between border-t-2 border-t-blue-500">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <div class="flex items-center gap-2">
-              <div id="host-serial-dot" class="w-3 h-3 rounded-full bg-rose-500 status-glow-red"></div>
-              <span id="host-serial-status-text" class="text-sm font-bold text-rose-400">Disconnected</span>
-              <span class="text-xs px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-white/10 font-mono-tech">115200 BAUD</span>
-            </div>
-
-            <!-- Client Count Badge -->
-            <div class="text-xs text-slate-400 flex items-center gap-1.5 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-white/10">
-              <i data-lucide="users" class="w-3.5 h-3.5 text-cyan-400"></i>
-              <span>Controller ที่เชื่อมต่อ:</span>
-              <span id="host-clients-count" class="font-bold text-cyan-400">0 อุปกรณ์</span>
-            </div>
-          </div>
-
-          <!-- Description and actions -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-2 text-xs text-slate-300">
-            <div class="bg-slate-900/50 p-3 rounded-xl border border-white/5 space-y-1">
-              <div class="text-slate-400 flex items-center gap-1">
-                <i data-lucide="usb" class="w-3.5 h-3.5 text-blue-400"></i> USB Hardware Bridge
-              </div>
-              <p class="text-[11px] text-slate-400 leading-normal">
-                เสียบสาย USB ของ ESP32 เข้ากับคอมพิวเตอร์ จากนั้นกดปุ่มเลือก COM Port เพื่อเริ่มส่งองศา
-              </p>
-            </div>
-            <div class="bg-slate-900/50 p-3 rounded-xl border border-white/5 space-y-1">
-              <div class="text-slate-400 flex items-center gap-1">
-                <i data-lucide="code" class="w-3.5 h-3.5 text-emerald-400"></i> Stream Protocol
-              </div>
-              <div class="font-mono-tech text-[11px] text-emerald-300 break-all">
-                Format: <span id="host-serial-string-preview" class="bg-emerald-950/60 px-1 py-0.5 rounded border border-emerald-500/20">90,90,90,90\n</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Button Row -->
-          <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-white/10">
-            <button id="host-btn-connect-serial" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 transition">
-              <i data-lucide="cable" class="w-4 h-4"></i> เชื่อมต่อ ESP32 (USB)
-            </button>
-            <button id="host-btn-disconnect-serial" class="hidden flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 transition">
-              <i data-lucide="power" class="w-4 h-4"></i> ตัดการเชื่อมต่อ USB
-            </button>
-            <button id="host-btn-sim-serial" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 border border-white/10 transition" title="ทดสอบโดยไม่ต้องมีบอร์ด ESP32 จริง">
-              <i data-lucide="play-circle" class="w-4 h-4 text-cyan-400"></i> โหมดจำลอง (Simulate)
-            </button>
-            <button id="host-btn-test-send" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 border border-white/10 transition" title="ส่งค่า 90,90,90,90">
-              <i data-lucide="send" class="w-3.5 h-3.5 text-blue-400"></i> Test Frame
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- MIDDLE SECTION: 2D Canvas Kinematic Visualizer + Telemetry -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-
-        <!-- 2D Canvas Kinematic Visualizer (Col 1-7) -->
-        <div class="lg:col-span-7 glass-panel rounded-2xl p-4 flex flex-col border border-white/10 relative overflow-hidden">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <i data-lucide="orbit" class="w-4 h-4 text-cyan-400"></i>
-              <h2 class="text-sm font-bold tracking-wide text-slate-200">2D ROBOT KINEMATICS SIMULATOR</h2>
-            </div>
-            <span class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10">60 FPS LERP</span>
-          </div>
-
-          <!-- Canvas Display Box -->
-          <div class="relative w-full h-[320px] sm:h-[370px] bg-slate-950/70 rounded-xl border border-white/5 overflow-hidden flex items-center justify-center">
-            <canvas id="host-robot-canvas" class="w-full h-full block"></canvas>
-          </div>
-
-          <div class="mt-3 flex items-center justify-between text-[11px] text-slate-400 px-1">
-            <span>● Pivot Points: Base (Blue) ➔ Shoulder (Blue) ➔ Elbow (Purple) ➔ Gripper (Green)</span>
-            <span class="hidden sm:inline">Smooth Kinematics Render</span>
-          </div>
-        </div>
-
-        <!-- Telemetry Gauges & Values (Col 8-12) -->
-        <div id="host-telemetry-panel" class="lg:col-span-5 glass-panel rounded-2xl p-4 flex flex-col justify-between border border-white/10 transition-all">
-          <div>
-            <div class="flex items-center justify-between mb-3">
+        <!-- ======================================================== -->
+        <!-- COLUMN 2: ROBOT JOINTS CONTROLS (Col 6-9, ~33%)          -->
+        <!-- ======================================================== -->
+        <div class="lg:col-span-4 flex flex-col">
+          <div class="glass-panel rounded-2xl p-4 sm:p-5 flex-1 flex flex-col justify-between border border-white/10 shadow-2xl">
+            <div class="flex items-center justify-between pb-2 border-b border-white/5">
               <div class="flex items-center gap-2">
-                <i data-lucide="sliders" class="w-4 h-4 text-purple-400"></i>
-                <h2 class="text-sm font-bold tracking-wide text-slate-200">SERVO TELEMETRY GAUGES</h2>
+                <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+                <h2 class="text-xs sm:text-sm font-bold tracking-wide text-slate-200 uppercase">ROBOT JOINTS CONTROLS</h2>
+              </div>
+              <span class="px-2 py-0.5 text-[10px] font-mono-tech rounded bg-slate-800 text-slate-400 border border-white/10">
+                Throttled 60ms
+              </span>
+            </div>
+
+            <!-- Dynamic Interactive Sliders List (Fits all configurations without scrolling) -->
+            <div id="host-sliders-container" class="flex-1 flex flex-col justify-around py-1.5">
+              <!-- Dynamically populated by host.js -->
+            </div>
+
+            <!-- Quick Action & Pose Presets -->
+            <div class="space-y-2 pt-2 border-t border-white/5">
+              <!-- Presets Strip -->
+              <div class="grid grid-cols-4 gap-1.5 text-xs">
+                <button id="host-btn-home" class="py-2 px-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-[11px] font-bold text-slate-200 border border-cyan-500/40 flex items-center justify-center gap-1 shadow transition active:scale-95" title="Home 90° แบบสมูท">
+                  <i data-lucide="home" class="w-3.5 h-3.5 text-cyan-400"></i>
+                  <span>Home</span>
+                </button>
+                <button id="host-btn-straight" class="py-2 px-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-[11px] font-bold text-slate-200 border border-blue-500/30 flex items-center justify-center gap-1 shadow transition active:scale-95" title="แขนเหยียดตรง">
+                  <i data-lucide="arrow-up" class="w-3.5 h-3.5 text-blue-400"></i>
+                  <span>ท่าตรง</span>
+                </button>
+                <button id="host-btn-ready" class="py-2 px-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-[11px] font-bold text-slate-200 border border-amber-500/30 flex items-center justify-center gap-1 shadow transition active:scale-95" title="เตรียมพร้อมหยิบ">
+                  <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>พร้อม</span>
+                </button>
+                <button id="host-btn-rest" class="py-2 px-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-[11px] font-bold text-slate-200 border border-slate-600/40 flex items-center justify-center gap-1 shadow transition active:scale-95" title="พับเก็บปลอดภัย">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-slate-400"></i>
+                  <span>พักเก็บ</span>
+                </button>
+              </div>
+
+              <!-- Action Bar (Dance + Grab/Release) -->
+              <div class="grid grid-cols-2 gap-2">
+                <button id="host-btn-dance" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600/90 to-indigo-600/90 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 transition active:scale-95">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+                  <span id="host-dance-btn-text">💃 ท่าเต้น (Dance)</span>
+                </button>
+                <button id="host-btn-toggle-grab" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/25 transition active:scale-95">
+                  <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
+                  <span id="host-grab-btn-text">Release (ปล่อย)</span>
+                </button>
+              </div>
+
+              <!-- Full Width Emergency Stop Button -->
+              <button id="host-btn-estop" class="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 shadow-lg shadow-rose-600/30 transition active:scale-98">
+                <i data-lucide="octagon-alert" class="w-4 h-4"></i>
+                <span>EMERGENCY STOP</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- COLUMN 3: TELEMETRY & SERIAL LOG (Col 10-12, ~25%)       -->
+        <!-- ======================================================== -->
+        <div class="lg:col-span-3 flex flex-col gap-3 justify-between">
+
+          <!-- Card 1: SERVO TELEMETRY GAUGES -->
+          <div id="host-telemetry-panel" class="glass-panel rounded-2xl p-3 sm:p-4 border border-white/10 shadow-lg space-y-2">
+            <div class="flex items-center justify-between pb-1.5 border-b border-white/5">
+              <div class="flex items-center gap-2">
+                <i data-lucide="gauge" class="w-4 h-4 text-purple-400"></i>
+                <h2 class="text-xs sm:text-sm font-bold tracking-wide text-slate-200">SERVO TELEMETRY GAUGES</h2>
               </div>
               <div class="flex items-center gap-2 text-xs font-mono-tech text-slate-400">
                 <span>TX: <b id="host-tx-counter" class="text-cyan-400">0</b></span>
@@ -238,115 +349,41 @@
               </div>
             </div>
 
-            <!-- 4 Axis Value Cards -->
-            <div class="space-y-3">
-              
-              <!-- 1. Base Axis -->
-              <div class="bg-slate-900/60 p-3 rounded-xl border border-blue-500/20">
-                <div class="flex justify-between items-center mb-1.5">
-                  <span class="text-xs font-semibold text-blue-400 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-blue-500"></span> Axis 1: Base (ฐานหมุน)
-                  </span>
-                  <span id="host-val-base" class="font-mono-tech text-base font-bold text-blue-300">90°</span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                  <div id="host-bar-base" class="h-full bg-blue-500 rounded-full transition-all duration-100" style="width: 50%;"></div>
-                </div>
-                <div class="flex justify-between text-[10px] text-slate-500 mt-1">
-                  <span>0° (Left)</span>
-                  <span>90° (Center)</span>
-                  <span>180° (Right)</span>
-                </div>
-              </div>
+            <!-- Dynamic Telemetry Gauges Container -->
+            <div id="host-telemetry-container" class="space-y-2 pr-0.5">
+              <!-- Dynamically populated by host.js -->
+            </div>
 
-              <!-- 2. Shoulder Axis -->
-              <div class="bg-slate-900/60 p-3 rounded-xl border border-purple-500/20">
-                <div class="flex justify-between items-center mb-1.5">
-                  <span class="text-xs font-semibold text-purple-400 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-purple-500"></span> Axis 2: Shoulder (หัวไหล่)
-                  </span>
-                  <span id="host-val-shoulder" class="font-mono-tech text-base font-bold text-purple-300">90°</span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                  <div id="host-bar-shoulder" class="h-full bg-purple-500 rounded-full transition-all duration-100" style="width: 50%;"></div>
-                </div>
-                <div class="flex justify-between text-[10px] text-slate-500 mt-1">
-                  <span>0° (Forward)</span>
-                  <span>90° (Upright)</span>
-                  <span>180° (Back)</span>
-                </div>
-              </div>
-
-              <!-- 3. Elbow Axis -->
-              <div class="bg-slate-900/60 p-3 rounded-xl border border-amber-500/20">
-                <div class="flex justify-between items-center mb-1.5">
-                  <span class="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-amber-500"></span> Axis 3: Elbow (ข้อศอก)
-                  </span>
-                  <span id="host-val-elbow" class="font-mono-tech text-base font-bold text-amber-300">90°</span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                  <div id="host-bar-elbow" class="h-full bg-amber-500 rounded-full transition-all duration-100" style="width: 50%;"></div>
-                </div>
-                <div class="flex justify-between text-[10px] text-slate-500 mt-1">
-                  <span>0° (Flexed)</span>
-                  <span>90° (Normal)</span>
-                  <span>180° (Extended)</span>
-                </div>
-              </div>
-
-              <!-- 4. Gripper Axis -->
-              <div class="bg-slate-900/60 p-3 rounded-xl border border-emerald-500/20">
-                <div class="flex justify-between items-center mb-1.5">
-                  <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Axis 4: Gripper (มือจับ)
-                  </span>
-                  <span id="host-val-gripper" class="font-mono-tech text-base font-bold text-emerald-300">90°</span>
-                </div>
-                <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                  <div id="host-bar-gripper" class="h-full bg-emerald-500 rounded-full transition-all duration-100" style="width: 50%;"></div>
-                </div>
-                <div class="flex justify-between text-[10px] text-slate-500 mt-1">
-                  <span>0° (Released)</span>
-                  <span>90° (Half)</span>
-                  <span>180° (Clamped)</span>
-                </div>
-              </div>
-
+            <div class="pt-1.5 border-t border-white/5 text-[10px] text-slate-400 flex items-center justify-between font-mono-tech">
+              <span>Room Code: <b id="host-telemetry-room-code" class="text-cyan-400">7188</b></span>
+              <span class="text-slate-500">Broker: Supabase Realtime</span>
             </div>
           </div>
 
-          <!-- Bottom tip -->
-          <div class="pt-3 border-t border-white/5 text-[11px] text-slate-400 flex items-center justify-between">
-            <span>Room Code: <b id="host-mini-room-code" class="text-cyan-400 font-mono-tech">----</b></span>
-            <span>Broker: Supabase Realtime</span>
+          <!-- Card 2: SERIAL COMMUNICATION LOG (CONSOLE) -->
+          <div class="glass-panel rounded-2xl p-3 sm:p-4 border border-white/10 shadow-lg flex-1 flex flex-col justify-between">
+            <div class="flex items-center justify-between pb-1.5 border-b border-white/5">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <h3 class="text-xs font-bold tracking-wider uppercase text-slate-300">
+                  SERIAL COMMUNICATION LOG (CONSOLE)
+                </h3>
+              </div>
+              <button id="host-btn-clear-log" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-white/10 transition">
+                Clear Log
+              </button>
+            </div>
+
+            <div id="host-serial-log-box" class="flex-1 min-h-[140px] max-h-[220px] overflow-y-auto custom-scroll bg-slate-950/80 p-2.5 rounded-xl border border-white/5 font-mono-tech text-[11px] space-y-1">
+              <div class="text-slate-500 italic py-1 text-center">ยังไม่มีข้อมูล Serial เริ่มการเชื่อมต่อเพื่อดูข้อความสด...</div>
+            </div>
           </div>
+
         </div>
 
-      </div>
-
-      <!-- BOTTOM SECTION: Serial TX / RX Log Terminal -->
-      <div class="glass-panel rounded-2xl p-4 border border-white/10">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <i data-lucide="terminal" class="w-4 h-4 text-emerald-400"></i>
-            <h2 class="text-sm font-bold tracking-wide text-slate-200">SERIAL COMMUNICATION LOG</h2>
-          </div>
-          <div class="flex items-center gap-2">
-            <button id="host-btn-clear-log" class="text-[11px] px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition border border-white/10">
-              Clear Log
-            </button>
-          </div>
-        </div>
-
-        <div id="host-serial-log-box" class="w-full h-36 bg-slate-950/80 rounded-xl p-3 border border-white/5 overflow-y-auto custom-scroll font-mono-tech text-xs space-y-1">
-          <!-- Real-time log entries inserted here -->
-          <div class="text-slate-500 text-xs py-0.5">[SYSTEM READY] พร้อมเชื่อมต่อ Web Serial API และรับคำสั่งผ่าน Supabase Channel</div>
-        </div>
       </div>
 
     </div>
-
 
     <!-- ======================================================== -->
     <!-- 2. MOBILE CONTROLLER VIEW CONTAINER                     -->
@@ -406,94 +443,21 @@
           </div>
         </div>
 
-        <!-- 4 Large Touch Sliders -->
+        <!-- Dynamic Touch Sliders Container -->
         <div class="glass-panel rounded-2xl p-4 border border-white/10 space-y-4">
           <div class="flex items-center justify-between pb-1 border-b border-white/5">
             <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
               <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i> ROBOT JOINTS CONTROLS
             </span>
-            <span class="text-[10px] text-slate-400">Throttled 60ms</span>
+            <span id="ctrl-servo-mode-badge" class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-cyan-400 border border-white/10 font-bold">
+              4 SERVOS
+            </span>
           </div>
 
-          <!-- Slider 1: Base -->
-          <div class="space-y-1.5 bg-slate-900/60 p-3 rounded-xl border border-blue-500/20">
-            <div class="flex items-center justify-between">
-              <label class="text-xs font-bold text-blue-400 flex items-center gap-1">
-                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Base Rotation
-              </label>
-              <div class="flex items-center gap-1">
-                <button id="ctrl-btn-base-minus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold hover:bg-slate-700 active:scale-95 transition">-</button>
-                <span id="ctrl-val-base" class="w-12 text-center font-mono-tech font-bold text-blue-300 text-sm">90°</span>
-                <button id="ctrl-btn-base-plus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold hover:bg-slate-700 active:scale-95 transition">+</button>
-              </div>
-            </div>
-            <input id="ctrl-slider-base" type="range" min="0" max="180" value="90" class="touch-slider slider-base">
-            <div class="flex justify-between text-[10px] text-slate-500">
-              <span>0° ซ้าย</span>
-              <span>90° ตรงกลาง</span>
-              <span>180° ขวา</span>
-            </div>
+          <!-- Dynamic Sliders Rendered Here -->
+          <div id="ctrl-sliders-container" class="space-y-3.5">
+            <!-- Dynamically populated by controller.js -->
           </div>
-
-          <!-- Slider 2: Shoulder -->
-          <div class="space-y-1.5 bg-slate-900/60 p-3 rounded-xl border border-purple-500/20">
-            <div class="flex items-center justify-between">
-              <label class="text-xs font-bold text-purple-400 flex items-center gap-1">
-                <i data-lucide="move-vertical" class="w-3.5 h-3.5"></i> Shoulder Axis
-              </label>
-              <div class="flex items-center gap-1">
-                <button id="ctrl-btn-shoulder-minus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold hover:bg-slate-700 active:scale-95 transition">-</button>
-                <span id="ctrl-val-shoulder" class="w-12 text-center font-mono-tech font-bold text-purple-300 text-sm">90°</span>
-                <button id="ctrl-btn-shoulder-plus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold hover:bg-slate-700 active:scale-95 transition">+</button>
-              </div>
-            </div>
-            <input id="ctrl-slider-shoulder" type="range" min="0" max="180" value="90" class="touch-slider slider-shoulder">
-            <div class="flex justify-between text-[10px] text-slate-500">
-              <span>0° ก้มต่ำ</span>
-              <span>90° ตั้งฉาก</span>
-              <span>180° เงยหลัง</span>
-            </div>
-          </div>
-
-          <!-- Slider 3: Elbow -->
-          <div class="space-y-1.5 bg-slate-900/60 p-3 rounded-xl border border-amber-500/20">
-            <div class="flex items-center justify-between">
-              <label class="text-xs font-bold text-amber-400 flex items-center gap-1">
-                <i data-lucide="corner-down-right" class="w-3.5 h-3.5"></i> Elbow Axis
-              </label>
-              <div class="flex items-center gap-1">
-                <button id="ctrl-btn-elbow-minus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold hover:bg-slate-700 active:scale-95 transition">-</button>
-                <span id="ctrl-val-elbow" class="w-12 text-center font-mono-tech font-bold text-amber-300 text-sm">90°</span>
-                <button id="ctrl-btn-elbow-plus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold hover:bg-slate-700 active:scale-95 transition">+</button>
-              </div>
-            </div>
-            <input id="ctrl-slider-elbow" type="range" min="0" max="180" value="90" class="touch-slider slider-elbow">
-            <div class="flex justify-between text-[10px] text-slate-500">
-              <span>0° พับงอ</span>
-              <span>90° กลาง</span>
-              <span>180° เหยียดตรง</span>
-            </div>
-          </div>
-
-          <!-- Slider 4: Gripper -->
-          <div class="space-y-1.5 bg-slate-900/60 p-3 rounded-xl border border-emerald-500/20">
-            <div class="flex items-center justify-between">
-              <label class="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                <i data-lucide="scissors" class="w-3.5 h-3.5"></i> Gripper (มือจับ)
-              </label>
-              <div class="flex items-center gap-1">
-                <button id="ctrl-btn-gripper-minus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold hover:bg-slate-700 active:scale-95 transition">-</button>
-                <span id="ctrl-val-gripper" class="w-12 text-center font-mono-tech font-bold text-emerald-300 text-sm">90°</span>
-                <button id="ctrl-btn-gripper-plus" class="w-7 h-7 rounded bg-slate-800 text-slate-200 text-xs font-bold hover:bg-slate-700 active:scale-95 transition">+</button>
-              </div>
-            </div>
-            <input id="ctrl-slider-gripper" type="range" min="0" max="180" value="90" class="touch-slider slider-gripper">
-            <div class="flex justify-between text-[10px] text-slate-500">
-              <span>0° อ้าสุด (Release)</span>
-              <span>180° คีบแน่น (Grab)</span>
-            </div>
-          </div>
-
         </div>
 
         <!-- Quick Action Buttons -->
@@ -505,7 +469,7 @@
 
           <!-- Grab / Release Toggle -->
           <button id="ctrl-btn-grab" class="py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition">
-            <i data-lucide="chevrons-right-left" class="w-4 h-4"></i> <span id="ctrl-btn-grab-text">Grab (คีบ)</span>
+            <i data-lucide="chevrons-right-left" class="w-4 h-4"></i> <span id="ctrl-btn-grab-text">Grab / Release</span>
           </button>
         </div>
 
@@ -538,13 +502,48 @@
     </div>
   </div>
 
+  <!-- MODAL: QR PAIRING CODE -->
+  <div id="modal-qr" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="max-w-sm w-full glass-panel rounded-2xl p-6 border border-white/10 text-center space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <i data-lucide="qr-code" class="w-5 h-5 text-cyan-400"></i>
+          <h3 class="font-bold text-base text-white">สแกนเพื่อควบคุม (Mobile)</h3>
+        </div>
+        <button onclick="closeModal('modal-qr')" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="bg-white p-3 rounded-2xl inline-block shadow-lg mx-auto">
+        <img id="modal-qr-img" src="" alt="QR Code" class="w-48 h-48 block">
+      </div>
+      <div>
+        <div class="text-[11px] text-slate-400 mb-0.5">รหัสห้องสำหรับควบคุม</div>
+        <div id="modal-qr-room-code" class="font-mono-tech text-3xl font-extrabold text-cyan-400 tracking-widest select-all">
+          ----
+        </div>
+      </div>
+      <p class="text-xs text-slate-400">
+        เปิดกล้องมือถือส่อง QR Code ด้านบนเพื่อเข้าสู่หน้าจอควบคุมหุ่นยนต์ทันที
+      </p>
+      <div class="flex gap-2 pt-2">
+        <button id="modal-qr-copy-btn" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-white/10 flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i> คัดลอกลิงก์
+        </button>
+        <button onclick="closeModal('modal-qr')" class="py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-bold text-white transition">
+          ปิด
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: ESP32 CODE GUIDE -->
   <div id="modal-code" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div class="max-w-3xl w-full glass-panel rounded-2xl p-5 sm:p-6 border border-white/10 max-h-[85vh] flex flex-col shadow-2xl">
       <div class="flex items-center justify-between pb-3 border-b border-white/10">
         <div class="flex items-center gap-2">
           <i data-lucide="cpu" class="w-5 h-5 text-cyan-400"></i>
-          <h3 class="font-bold text-base text-white">ESP32 Firmware Guide & Wiring</h3>
+          <h3 class="font-bold text-base text-white">ESP32 Firmware Guide & Wiring (2 - 6 Servos)</h3>
         </div>
         <button onclick="closeModal('modal-code')" class="p-1 rounded-lg text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -553,51 +552,83 @@
 
       <div class="overflow-y-auto custom-scroll flex-1 py-4 space-y-4 text-xs sm:text-sm text-slate-300">
         
-        <div class="bg-blue-950/40 border border-blue-500/20 rounded-xl p-3">
-          <div class="font-bold text-blue-400 mb-1">📌 การต่อสาย Servo เข้ากับบอร์ด ESP32:</div>
-          <ul class="list-disc list-inside space-y-1 text-slate-300 text-xs">
-            <li><b>Base (ฐานหมุน)</b>: GPIO 18 (ส้ม/เหลือง)</li>
-            <li><b>Shoulder (หัวไหล่)</b>: GPIO 19 (ส้ม/เหลือง)</li>
-            <li><b>Elbow (ข้อศอก)</b>: GPIO 21 (ส้ม/เหลือง)</li>
-            <li><b>Gripper (มือจับ)</b>: GPIO 22 (ส้ม/เหลือง)</li>
-            <li><b>VCC / GND</b>: ต่อไฟเลี้ยงแยก 5V 2A-3A (ห้ามดึงไฟจาก 3.3V ของ ESP32 โดยตรง) และต่อสาย GND ร่วมกัน</li>
-          </ul>
+        <div class="bg-blue-950/40 border border-blue-500/20 rounded-xl p-3.5 space-y-2">
+          <div class="font-bold text-blue-400 flex items-center gap-1.5">
+            <i data-lucide="zap" class="w-4 h-4"></i> ขาต่อ GPIO ของ Servo แต่ละรุ่น:
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
+            <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
+              <div class="font-bold text-cyan-300">2 Servos:</div>
+              <div>• S1 (Base): GPIO 18</div>
+              <div>• S2 (Gripper): GPIO 19</div>
+            </div>
+            <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
+              <div class="font-bold text-cyan-300">3 Servos:</div>
+              <div>• S1 (Base): GPIO 18</div>
+              <div>• S2 (Arm): GPIO 19</div>
+              <div>• S3 (Gripper): GPIO 21</div>
+            </div>
+            <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
+              <div class="font-bold text-cyan-300">4 Servos (Standard):</div>
+              <div>• S1 (Base): GPIO 18 | S2 (Shoulder): GPIO 19</div>
+              <div>• S3 (Elbow): GPIO 21 | S4 (Gripper): GPIO 22</div>
+            </div>
+            <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
+              <div class="font-bold text-cyan-300">5-6 Servos:</div>
+              <div>• S1: 18 | S2: 19 | S3: 21 | S4: 22</div>
+              <div>• S5 (Wrist): GPIO 23 | S6 (Gripper): GPIO 25</div>
+            </div>
+          </div>
+          <p class="text-[11px] text-amber-300/90 pt-1">
+            ⚠️ <b>คำแนะนำเรื่องไฟ:</b> ควรใช้แหล่งจ่าย 5V 2A-3A ภายนอกเลี้ยงเซอร์โว และต่อสาย GND ร่วมกับ ESP32 เสมอ
+          </p>
         </div>
 
         <div>
           <div class="flex items-center justify-between mb-1">
-            <span class="font-bold text-slate-200">Arduino Sketch (รองรับไลบรารี ESP32Servo):</span>
+            <span class="font-bold text-slate-200">Arduino Sketch (Universal Dynamic 2-6 Servos):</span>
             <span class="text-[11px] text-slate-400">Baud: 115200</span>
           </div>
-          <pre class="bg-slate-950 p-3 rounded-xl border border-white/10 font-mono-tech text-xs text-cyan-300 overflow-x-auto select-all">
+          <pre class="bg-slate-950 p-3.5 rounded-xl border border-white/10 font-mono-tech text-xs text-cyan-300 overflow-x-auto select-all">
 #include &lt;ESP32Servo.h&gt;
 
-Servo sBase, sShoulder, sElbow, sGripper;
+// กำหนดจำนวนเซอร์โวที่ใช้งาน (2, 3, 4, 5, หรือ 6)
+#define NUM_SERVOS 4
+
+// กำหนดขา GPIO ตามลำดับเซอร์โว
+const int SERVO_PINS[6] = {18, 19, 21, 22, 23, 25};
+Servo servos[6];
 
 void setup() {
   Serial.begin(115200);
-  sBase.attach(18);
-  sShoulder.attach(19);
-  sElbow.attach(21);
-  sGripper.attach(22);
-  sBase.write(90); sShoulder.write(90); sElbow.write(90); sGripper.write(90);
+  delay(500);
+
+  // ผูกเซอร์โวตามจำนวน NUM_SERVOS
+  for (int i = 0; i &lt; NUM_SERVOS; i++) {
+    servos[i].attach(SERVO_PINS[i], 500, 2400);
+    servos[i].write(90); // Home position
+  }
+  Serial.printf("ESP32 Ready! Active Servos: %d\n", NUM_SERVOS);
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    String str = Serial.readStringUntil('\n');
-    str.trim();
-    int c1 = str.indexOf(',');
-    int c2 = str.indexOf(',', c1 + 1);
-    int c3 = str.indexOf(',', c2 + 1);
-    if (c1 > 0 && c2 > c1 && c3 > c2) {
-      int b = constrain(str.substring(0, c1).toInt(), 0, 180);
-      int s = constrain(str.substring(c1 + 1, c2).toInt(), 0, 180);
-      int e = constrain(str.substring(c2 + 1, c3).toInt(), 0, 180);
-      int g = constrain(str.substring(c3 + 1).toInt(), 0, 180);
-      sBase.write(b); sShoulder.write(s); sElbow.write(e); sGripper.write(g);
-      Serial.printf("ACK: %d,%d,%d,%d\n", b, s, e, g);
+  if (Serial.available() &gt; 0) {
+    String line = Serial.readStringUntil('\n');
+    line.trim();
+    if (line.length() == 0) return;
+
+    // แยกค่าองศาที่คั่นด้วยจุลภาค เช่น "90,120,45,10"
+    int index = 0;
+    int lastPos = 0;
+    for (int i = 0; i &lt;= line.length() &amp;&amp; index &lt; NUM_SERVOS; i++) {
+      if (i == line.length() || line.charAt(i) == ',') {
+        int angle = constrain(line.substring(lastPos, i).toInt(), 0, 180);
+        servos[index].write(angle);
+        index++;
+        lastPos = i + 1;
+      }
     }
+    Serial.printf("ACK: %s\n", line.c_str());
   }
 }
 </pre>
@@ -658,10 +689,12 @@ void loop() {
 
   <!-- APPLICATION SCRIPTS -->
   <script src="config.js"></script>
-  <script src="serial.js"></script>
-  <script src="robotCanvas.js"></script>
-  <script src="host.js"></script>
-  <script src="controller.js"></script>
+  <script src="gripperCalibration.js"></script>
+  <script src="serial.js?v=2.5"></script>
+  <script src="robotCanvas.js?v=2.5"></script>
+  <script src="robot3D.js?v=2.5"></script>
+  <script src="host.js?v=2.5"></script>
+  <script src="controller.js?v=2.5"></script>
 
   <script>
     // Global Controllers
@@ -716,8 +749,9 @@ void loop() {
         hostContainer.classList.remove('hidden');
         ctrlContainer.classList.add('hidden');
         hostContainer.className = 'space-y-5 transition-all duration-300';
-        tabHost.className = 'px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all text-white bg-blue-600 shadow-md';
+        if (hostApp && hostApp.visualizer3D) hostApp.visualizer3D.onResize();
         if (hostApp && hostApp.visualizer) hostApp.visualizer.resize();
+        tabHost.className = 'px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all text-white bg-blue-600 shadow-md';
       } else if (mode === 'controller') {
         hostContainer.classList.add('hidden');
         ctrlContainer.classList.remove('hidden');
@@ -733,6 +767,7 @@ void loop() {
           if (pinEl) pinEl.value = hostApp.roomCode;
           ctrlApp.connectToRoom(hostApp.roomCode);
         }
+        if (hostApp && hostApp.visualizer3D) setTimeout(() => hostApp.visualizer3D.onResize(), 100);
         if (hostApp && hostApp.visualizer) setTimeout(() => hostApp.visualizer.resize(), 100);
       }
     }

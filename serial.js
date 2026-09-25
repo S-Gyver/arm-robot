@@ -169,11 +169,19 @@ class WebSerialManager {
   }
 
   /**
-   * ส่งคำสั่งมุมองศาไปยัง ESP32 ในรูปแบบ "base,shoulder,elbow,gripper\n"
-   * เช่น "90,120,45,10\n"
+   * ส่งคำสั่งมุมองศาไปยัง ESP32 ในรูปแบบ CSV คั่นด้วยจุลภาค เช่น "90,90,90,90\n"
+   * รองรับ 2, 3, 4, 5, หรือ 6 Servos
    */
-  async sendAngles(base, shoulder, elbow, gripper) {
-    const payload = `${Math.round(base)},${Math.round(shoulder)},${Math.round(elbow)},${Math.round(gripper)}\n`;
+  async sendAngles(...args) {
+    let angleList = [];
+    if (args.length === 1 && Array.isArray(args[0])) {
+      angleList = args[0];
+    } else if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+      angleList = Object.values(args[0]);
+    } else {
+      angleList = args;
+    }
+    const payload = angleList.map(a => Math.round(Number(a) !== undefined && !isNaN(Number(a)) ? Number(a) : 90)).join(',') + '\n';
     return await this.sendRaw(payload);
   }
 
@@ -191,7 +199,6 @@ class WebSerialManager {
     }
 
     if (!this.isConnected || !this.writer) {
-      this.log('ไม่ได้เชื่อมต่อพอร์ต Serial ไม่สามารถส่งข้อมูลได้', 'warning');
       return false;
     }
 
