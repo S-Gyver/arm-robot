@@ -78,6 +78,12 @@
           <span class="hidden sm:inline">Calibrate เซอร์โว</span>
         </button>
 
+        <!-- Web Flasher Button -->
+        <button onclick="openWebFlasherModal()" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-600/20 hover:from-cyan-500/30 hover:to-blue-600/30 text-cyan-300 border border-cyan-500/40 transition flex items-center gap-1.5 text-xs font-bold shadow-sm active:scale-95" title="ติดตั้งโปรแกรมลงบอร์ด ESP32 ผ่านเว็บทันที">
+          <i data-lucide="zap" class="w-4 h-4 text-cyan-400"></i>
+          <span class="hidden sm:inline">แฟลช ESP32</span>
+        </button>
+
         <!-- ESP32 Wiring & Firmware Code Modal Button -->
         <button onclick="openModal('modal-code')" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold" title="ESP32 Wiring & Firmware">
           <i data-lucide="file-code" class="w-4 h-4"></i>
@@ -403,24 +409,24 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
             <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
               <div class="font-bold text-cyan-300">2 Servos:</div>
-              <div>• S1 (Base): GPIO 18</div>
-              <div>• S2 (Gripper): GPIO 19</div>
+              <div>• S1 (Base): GPIO 16</div>
+              <div>• S2 (Gripper): GPIO 17</div>
             </div>
             <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
               <div class="font-bold text-cyan-300">3 Servos:</div>
-              <div>• S1 (Base): GPIO 18</div>
-              <div>• S2 (Arm): GPIO 19</div>
-              <div>• S3 (Gripper): GPIO 21</div>
+              <div>• S1 (Base): GPIO 16</div>
+              <div>• S2 (Arm): GPIO 17</div>
+              <div>• S3 (Gripper): GPIO 18</div>
             </div>
             <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
               <div class="font-bold text-cyan-300">4 Servos (Standard):</div>
-              <div>• S1 (Base): GPIO 18 | S2 (Shoulder): GPIO 19</div>
-              <div>• S3 (Elbow): GPIO 21 | S4 (Gripper): GPIO 22</div>
+              <div>• S1 (Base): GPIO 16 | S2 (Shoulder): GPIO 17</div>
+              <div>• S3 (Elbow): GPIO 18 | S4 (Gripper): GPIO 19</div>
             </div>
             <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
               <div class="font-bold text-cyan-300">5-6 Servos:</div>
-              <div>• S1: 18 | S2: 19 | S3: 21 | S4: 22</div>
-              <div>• S5 (Wrist Pitch): GPIO 23 | S6 (Wrist Roll): GPIO 25</div>
+              <div>• S1: 16 | S2: 17 | S3: 18 | S4: 19</div>
+              <div>• S5 (Wrist Pitch): GPIO 21 | S6 (Wrist Roll): GPIO 22</div>
             </div>
           </div>
         </div>
@@ -465,6 +471,7 @@
 
   <script src="config.js"></script>
   <script src="gripperCalibration.js"></script>
+  <script src="webFlasher.js"></script>
   <script src="serial.js?v=2.5"></script>
   <script src="robotCanvas.js?v=2.5"></script>
   <script src="robot3D.js?v=2.5"></script>

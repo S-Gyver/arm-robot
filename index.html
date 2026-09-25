@@ -109,6 +109,12 @@
           <span class="hidden sm:inline">Calibrate เซอร์โว</span>
         </button>
 
+        <!-- Web Flasher Button -->
+        <button onclick="openWebFlasherModal()" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-600/20 hover:from-cyan-500/30 hover:to-blue-600/30 text-cyan-300 border border-cyan-500/40 transition flex items-center gap-1.5 text-xs font-bold shadow-sm active:scale-95" title="ติดตั้งโปรแกรมลงบอร์ด ESP32 ผ่านเว็บทันที">
+          <i data-lucide="zap" class="w-4 h-4 text-cyan-400"></i>
+          <span class="hidden sm:inline">แฟลช ESP32</span>
+        </button>
+
         <!-- ESP32 Wiring & Firmware Code Modal Button -->
         <button onclick="openModal('modal-code')" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-cyan-400 border border-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold" title="ESP32 Wiring & Firmware">
           <i data-lucide="file-code" class="w-4 h-4"></i>
@@ -552,6 +558,26 @@
 
       <div class="overflow-y-auto custom-scroll flex-1 py-4 space-y-4 text-xs sm:text-sm text-slate-300">
         
+        <!-- Web Flasher One-Click Banner -->
+        <div class="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/70 via-blue-950/70 to-slate-900 border border-cyan-500/40 shadow-xl flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/20 flex-shrink-0">
+              <i data-lucide="zap" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="font-bold text-white text-sm flex items-center gap-2">
+                <span>ติดตั้งเฟิร์มแวร์ลงบอร์ด ESP32 ผ่านเว็บทันที</span>
+                <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">แนะนำ ⭐</span>
+              </div>
+              <p class="text-[11px] text-slate-300 mt-0.5">ไม่ต้องก็อปปี้โค้ด ไม่ต้องลง Arduino IDE แค่เสียบสาย USB แล้วกดปุ่มนี้</p>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('modal-code'); openWebFlasherModal();" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 active:scale-95 transition">
+            <i data-lucide="download-cloud" class="w-4 h-4"></i>
+            <span>เปิดตัวติดตั้ง (Web Flasher)</span>
+          </button>
+        </div>
+
         <div class="bg-blue-950/40 border border-blue-500/20 rounded-xl p-3.5 space-y-2">
           <div class="font-bold text-blue-400 flex items-center gap-1.5">
             <i data-lucide="zap" class="w-4 h-4"></i> ขาต่อ GPIO ของ Servo แต่ละรุ่น:
@@ -559,24 +585,24 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
             <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
               <div class="font-bold text-cyan-300">2 Servos:</div>
-              <div>• S1 (Base): GPIO 18</div>
-              <div>• S2 (Gripper): GPIO 19</div>
+              <div>• S1 (Base): GPIO 16</div>
+              <div>• S2 (Gripper): GPIO 17</div>
             </div>
             <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
               <div class="font-bold text-cyan-300">3 Servos:</div>
-              <div>• S1 (Base): GPIO 18</div>
-              <div>• S2 (Arm): GPIO 19</div>
-              <div>• S3 (Gripper): GPIO 21</div>
+              <div>• S1 (Base): GPIO 16</div>
+              <div>• S2 (Arm): GPIO 17</div>
+              <div>• S3 (Gripper): GPIO 18</div>
             </div>
             <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
               <div class="font-bold text-cyan-300">4 Servos (Standard):</div>
-              <div>• S1 (Base): GPIO 18 | S2 (Shoulder): GPIO 19</div>
-              <div>• S3 (Elbow): GPIO 21 | S4 (Gripper): GPIO 22</div>
+              <div>• S1 (Base): GPIO 16 | S2 (Shoulder): GPIO 17</div>
+              <div>• S3 (Elbow): GPIO 18 | S4 (Gripper): GPIO 19</div>
             </div>
             <div class="bg-slate-900/60 p-2.5 rounded-lg border border-white/5 space-y-1">
               <div class="font-bold text-cyan-300">5-6 Servos:</div>
-              <div>• S1: 18 | S2: 19 | S3: 21 | S4: 22</div>
-              <div>• S5 (Wrist): GPIO 23 | S6 (Gripper): GPIO 25</div>
+              <div>• S1: 16 | S2: 17 | S3: 18 | S4: 19</div>
+              <div>• S5 (Wrist): GPIO 21 | S6 (Gripper): GPIO 22</div>
             </div>
           </div>
           <p class="text-[11px] text-amber-300/90 pt-1">
@@ -596,7 +622,7 @@
 #define NUM_SERVOS 4
 
 // กำหนดขา GPIO ตามลำดับเซอร์โว
-const int SERVO_PINS[6] = {18, 19, 21, 22, 23, 25};
+const int SERVO_PINS[6] = {16, 17, 18, 19, 21, 22};
 Servo servos[6];
 
 void setup() {
@@ -690,6 +716,7 @@ void loop() {
   <!-- APPLICATION SCRIPTS -->
   <script src="config.js"></script>
   <script src="gripperCalibration.js"></script>
+  <script src="webFlasher.js"></script>
   <script src="serial.js?v=2.5"></script>
   <script src="robotCanvas.js?v=2.5"></script>
   <script src="robot3D.js?v=2.5"></script>

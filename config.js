@@ -44,8 +44,8 @@ const SERVO_CONFIGS = {
     title: '2-Axis Robot Arm',
     subtitle: 'ฐานหมุน + ก้ามปู (Base & Gripper)',
     axes: [
-      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 18, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
-      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 19, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
+      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 16, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
+      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 17, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
     ]
   },
   3: {
@@ -54,9 +54,9 @@ const SERVO_CONFIGS = {
     title: '3-Axis Robot Arm',
     subtitle: 'ฐาน + แขนหลัก + ก้ามปู (Base, Arm, Gripper)',
     axes: [
-      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 18, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
-      { key: 'shoulder', name: 'Main Arm', nameTh: 'แขนหลัก (ก้ม-เงย)', min: 0, max: 180, default: 90, color: 'purple', pin: 19, icon: 'move-vertical', minLabel: '0° ลง', maxLabel: '180° ขึ้น' },
-      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 21, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
+      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 16, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
+      { key: 'shoulder', name: 'Main Arm', nameTh: 'แขนหลัก (ก้ม-เงย)', min: 0, max: 180, default: 90, color: 'purple', pin: 17, icon: 'move-vertical', minLabel: '0° ลง', maxLabel: '180° ขึ้น' },
+      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 18, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
     ]
   },
   4: {
@@ -65,10 +65,10 @@ const SERVO_CONFIGS = {
     title: '4-Axis Robot Arm (Standard)',
     subtitle: 'ฐาน + หัวไหล่ + ข้อศอก + ก้ามปู (Base, Shoulder, Elbow, Gripper)',
     axes: [
-      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 18, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
-      { key: 'shoulder', name: 'Shoulder Axis', nameTh: 'หัวไหล่ (ก้ม-เงย)', min: 0, max: 180, default: 90, color: 'purple', pin: 19, icon: 'move-vertical', minLabel: '0° หน้า', maxLabel: '180° หลัง' },
-      { key: 'elbow', name: 'Elbow Axis', nameTh: 'ข้อศอก (พับแขน)', min: 0, max: 180, default: 90, color: 'cyan', pin: 21, icon: 'maximize-2', minLabel: '0° พับเข้า', maxLabel: '180° ยืดออก' },
-      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 22, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
+      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 16, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
+      { key: 'shoulder', name: 'Shoulder Axis', nameTh: 'หัวไหล่ (ก้ม-เงย)', min: 0, max: 180, default: 90, color: 'purple', pin: 17, icon: 'move-vertical', minLabel: '0° หน้า', maxLabel: '180° หลัง' },
+      { key: 'elbow', name: 'Elbow Axis', nameTh: 'ข้อศอก (พับแขน)', min: 0, max: 180, default: 90, color: 'cyan', pin: 18, icon: 'maximize-2', minLabel: '0° พับเข้า', maxLabel: '180° ยืดออก' },
+      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 19, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
     ]
   },
   5: {
@@ -77,11 +77,11 @@ const SERVO_CONFIGS = {
     title: '5-Axis Robot Arm',
     subtitle: 'ฐาน + ไหล่ + ศอก + ข้อมือก้มเงย + ก้ามปู (+Wrist Pitch)',
     axes: [
-      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 18, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
-      { key: 'shoulder', name: 'Shoulder Axis', nameTh: 'หัวไหล่', min: 0, max: 180, default: 90, color: 'purple', pin: 19, icon: 'move-vertical', minLabel: '0° หน้า', maxLabel: '180° หลัง' },
-      { key: 'elbow', name: 'Elbow Axis', nameTh: 'ข้อศอก', min: 0, max: 180, default: 90, color: 'cyan', pin: 21, icon: 'maximize-2', minLabel: '0° พับเข้า', maxLabel: '180° ยืดออก' },
-      { key: 'wristPitch', name: 'Wrist Pitch', nameTh: 'ข้อมือ (ก้ม-เงย)', min: 0, max: 180, default: 90, color: 'amber', pin: 22, icon: 'activity', minLabel: '0° ก้ม', maxLabel: '180° เงย' },
-      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 23, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
+      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 16, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
+      { key: 'shoulder', name: 'Shoulder Axis', nameTh: 'หัวไหล่', min: 0, max: 180, default: 90, color: 'purple', pin: 17, icon: 'move-vertical', minLabel: '0° หน้า', maxLabel: '180° หลัง' },
+      { key: 'elbow', name: 'Elbow Axis', nameTh: 'ข้อศอก', min: 0, max: 180, default: 90, color: 'cyan', pin: 18, icon: 'maximize-2', minLabel: '0° พับเข้า', maxLabel: '180° ยืดออก' },
+      { key: 'wristPitch', name: 'Wrist Pitch', nameTh: 'ข้อมือ (ก้ม-เงย)', min: 0, max: 180, default: 90, color: 'amber', pin: 19, icon: 'activity', minLabel: '0° ก้ม', maxLabel: '180° เงย' },
+      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 21, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
     ]
   },
   6: {
@@ -90,12 +90,12 @@ const SERVO_CONFIGS = {
     title: '6-Axis Robot Arm (Full DOF)',
     subtitle: 'ฐาน + ไหล่ + ศอก + ข้อมือก้มเงย + ข้อมือหมุน + ก้ามปู (+Wrist Roll)',
     axes: [
-      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 18, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
-      { key: 'shoulder', name: 'Shoulder Axis', nameTh: 'หัวไหล่', min: 0, max: 180, default: 90, color: 'purple', pin: 19, icon: 'move-vertical', minLabel: '0° หน้า', maxLabel: '180° หลัง' },
-      { key: 'elbow', name: 'Elbow Axis', nameTh: 'ข้อศอก', min: 0, max: 180, default: 90, color: 'cyan', pin: 21, icon: 'maximize-2', minLabel: '0° พับเข้า', maxLabel: '180° ยืดออก' },
-      { key: 'wristPitch', name: 'Wrist Pitch', nameTh: 'ข้อมือ (ก้ม-เงย)', min: 0, max: 180, default: 90, color: 'amber', pin: 22, icon: 'activity', minLabel: '0° ก้ม', maxLabel: '180° เงย' },
-      { key: 'wristRoll', name: 'Wrist Roll', nameTh: 'ข้อมือ (หมุนบิด)', min: 0, max: 180, default: 90, color: 'rose', pin: 23, icon: 'refresh-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
-      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 25, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
+      { key: 'base', name: 'Base Rotation', nameTh: 'ฐานหมุน', min: 0, max: 180, default: 90, color: 'blue', pin: 16, icon: 'rotate-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
+      { key: 'shoulder', name: 'Shoulder Axis', nameTh: 'หัวไหล่', min: 0, max: 180, default: 90, color: 'purple', pin: 17, icon: 'move-vertical', minLabel: '0° หน้า', maxLabel: '180° หลัง' },
+      { key: 'elbow', name: 'Elbow Axis', nameTh: 'ข้อศอก', min: 0, max: 180, default: 90, color: 'cyan', pin: 18, icon: 'maximize-2', minLabel: '0° พับเข้า', maxLabel: '180° ยืดออก' },
+      { key: 'wristPitch', name: 'Wrist Pitch', nameTh: 'ข้อมือ (ก้ม-เงย)', min: 0, max: 180, default: 90, color: 'amber', pin: 19, icon: 'activity', minLabel: '0° ก้ม', maxLabel: '180° เงย' },
+      { key: 'wristRoll', name: 'Wrist Roll', nameTh: 'ข้อมือ (หมุนบิด)', min: 0, max: 180, default: 90, color: 'rose', pin: 21, icon: 'refresh-cw', minLabel: '0° ซ้าย', maxLabel: '180° ขวา' },
+      { key: 'gripper', name: 'Gripper', nameTh: 'มือจับ/ก้ามปู', min: 0, max: 180, default: 90, color: 'emerald', pin: 22, icon: 'scissors', isGripper: true, minLabel: '0° ปล่อย', maxLabel: '180° คีบ' }
     ]
   }
 };
